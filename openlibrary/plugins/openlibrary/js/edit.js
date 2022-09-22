@@ -457,3 +457,107 @@ export function initEdit() {
         }, 1000);
     }
 }
+
+const isbn_invalid_checksum = 'Invalid checksum digit';
+const isbn10_wrong_length_or_chars = 'ID must be exactly 10 characters [0-9 or X]. For example 0-19-853453-1 or 0198534531';
+const isbn13_wrong_length_or_chars = 'ID must be exactly 13 characters [0-9]. For example 978-3-16-148410-0 or 9783161484100';
+
+// a hack to make raiseError perform differently upon subsequent calls
+let addBookWithIsbnErrors = false;
+
+function raiseError(event) {
+    // if first time calling
+    if(!addBookWithIsbnErrors) {
+        let confirm = document.getElementById('confirm-add');
+        confirm.style.display = 'block';
+        confirm.innerHTML = 'ISBN may be invalid. Click \'Add\' again to submit.';
+        addBookWithIsbnErrors = true;
+        let isbnInput = document.getElementById('id_value');
+        isbnInput.focus({focusVisible: true});
+        event.preventDefault();
+        return false;
+    }
+    // second time calling
+    return true;
+}
+
+function validateIsbn(event) {
+    let fieldName = document.getElementById('id_name').value;
+    let isbn = String(document.getElementById('id_value').value).replace(/[ -]/g, '');
+    if (fieldName === 'isbn_10') {
+        if(!isFormatValidIsbn10(isbn)) {
+            return raiseError(event);
+        }
+        if(!isChecksumValidIsbn10(isbn)) {
+            return raiseError(event);
+        }
+    }
+    else if (fieldName === 'isbn_13') {       
+        if(!isFormatValidIsbn13(isbn)) {
+            return raiseError(event);
+        }
+        if(!isChecksumValidIsbn13(isbn)) {
+            return raiseError(event);
+        }
+    }
+    return true;
+}
+
+function displayError(msg) {
+    let errorDiv = document.getElementById('id-errors');
+    errorDiv.style.display = 'block';
+    errorDiv.innerHTML = msg;
+    // let isbnInput = document.getElementById('id_value');
+    // isbnInput.focus({focusVisible: true});
+}
+
+function clearError() {
+    addBookWithIsbnErrors = false;
+    let errorDiv = document.getElementById('id-errors');
+    errorDiv.style.display = 'none';
+    errorDiv.innerHTML = '';
+    let confirm = document.getElementById('confirm-add');
+    confirm.style.display = 'none';
+    confirm.innerHTML = '';
+}
+
+function checkIsbn(event) {
+    let fieldName = document.getElementById('id_name').value;
+    let isbn = String(document.getElementById('id_value').value).replace(/[ -]/g, '');
+    if (fieldName === 'isbn_10') {
+        if(!isFormatValidIsbn10(isbn)) {
+            displayError(isbn10_wrong_length_or_chars);
+            return;
+        }
+        if(!isChecksumValidIsbn10(isbn)) {
+            displayError(isbn_invalid_checksum);
+            return;
+        }
+        if(isFormatValidIsbn10(isbn) && isChecksumValidIsbn10(isbn)) {
+            clearError();
+            return;
+        }
+    }
+    else if (fieldName === 'isbn_13') {       
+        if(!isFormatValidIsbn13(isbn)) {
+            displayError(isbn13_wrong_length_or_chars);
+            return;
+        }
+        if(!isChecksumValidIsbn13(isbn)) {
+            displayError(isbn_invalid_checksum);
+            return;
+        }
+        if(isFormatValidIsbn13(isbn) && isChecksumValidIsbn13(isbn)) {
+            clearError();
+            return;
+        }
+    }
+    clearError();
+}
+
+let addbook = document.getElementById('addbook');
+addbook.addEventListener('submit', validateIsbn);
+let isbnInput = document.getElementById('id_value');
+isbnInput.addEventListener('input', checkIsbn);
+let idSelection = document.getElementById('id_name');
+idSelection.addEventListener('change', checkIsbn);
